@@ -1,4 +1,4 @@
-package com.w3villa.mini_project_backend.services;
+package com.w3villa.mini_project_backend.services.impl;
 
 import com.w3villa.mini_project_backend.dtos.UserDto;
 import com.w3villa.mini_project_backend.entites.Provider;
@@ -6,6 +6,7 @@ import com.w3villa.mini_project_backend.entites.User;
 import com.w3villa.mini_project_backend.exceptions.ResourceNotFoundException;
 import com.w3villa.mini_project_backend.helpers.UserHelper;
 import com.w3villa.mini_project_backend.repositories.UserRepository;
+import com.w3villa.mini_project_backend.services.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
