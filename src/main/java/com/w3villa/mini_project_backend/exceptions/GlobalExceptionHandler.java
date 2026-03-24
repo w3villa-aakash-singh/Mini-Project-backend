@@ -1,32 +1,51 @@
 package com.w3villa.mini_project_backend.exceptions;
 
 
+import com.w3villa.mini_project_backend.dtos.ApiError;
 import com.w3villa.mini_project_backend.dtos.ErrorRsponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler (ResourceNotFoundException.class) // Added this!
-    public ResponseEntity<ErrorRsponse> handleResourceNotFound(ResourceNotFoundException exception) {
+    private  final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-        // Create the response object
-        ErrorRsponse error = new ErrorRsponse(
-                exception.getMessage(),
-                HttpStatus.NOT_FOUND
-        );
+    @ExceptionHandler({
+            UsernameNotFoundException.class,
+            BadCredentialsException.class,
+            CredentialsExpiredException.class,
+            DisabledException.class
 
-        // Return the object in the body with a 404 status
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    })
+    public ResponseEntity<ApiError> handleAuthException(Exception e, HttpServletRequest request) {
+        logger.info("Exception  : {}", e.getClass().getName());
+        var apiError= ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", e.getMessage(), request.getRequestURI());
+        return ResponseEntity.badRequest().body(apiError);
+
     }
 
-    // Recommended: Catch general arguments (like the "Email already exists" error)
+    //resource not found exception handler :: method
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorRsponse> handleResourceNotFoundException(ResourceNotFoundException exception) {
+        ErrorRsponse internalServerError = new ErrorRsponse(exception.getMessage(), HttpStatus.NOT_FOUND, 404);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(internalServerError);
+    }
+
+
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorRsponse> handleIllegalArgument(IllegalArgumentException exception) {
-        ErrorRsponse error = new ErrorRsponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorRsponse> handleIllegalArgumentException(IllegalArgumentException exception) {
+        ErrorRsponse internalServerError = new ErrorRsponse(exception.getMessage(), HttpStatus.BAD_REQUEST, 400);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(internalServerError);
     }
 }
