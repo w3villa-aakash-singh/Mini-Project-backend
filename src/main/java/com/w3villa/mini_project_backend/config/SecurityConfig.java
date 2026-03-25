@@ -26,7 +26,12 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-    private AuthenticationSuccessHandler successHandler;
+    private final AuthenticationSuccessHandler successHandler;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AuthenticationSuccessHandler successHandler) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.successHandler = successHandler;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,6 +45,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login","/api/v1/auth/refresh","/api/v1/auth/logout").permitAll()
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(successHandler)
+                        .failureHandler(null)
+                )
+                .logout(AbstractHttpConfigurer::disable)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, e) -> {
                             e.printStackTrace();
