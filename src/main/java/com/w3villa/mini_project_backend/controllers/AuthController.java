@@ -3,8 +3,11 @@ package com.w3villa.mini_project_backend.controllers;
 import com.w3villa.mini_project_backend.dtos.LoginRequest;
 import com.w3villa.mini_project_backend.dtos.TokenResponse;
 import com.w3villa.mini_project_backend.dtos.UserDto;
+import com.w3villa.mini_project_backend.entites.RefreshToken;
 import com.w3villa.mini_project_backend.entites.User;
+import com.w3villa.mini_project_backend.repositories.RefreshTokenRepository;
 import com.w3villa.mini_project_backend.repositories.UserRepository;
+import com.w3villa.mini_project_backend.security.CookieService;
 import com.w3villa.mini_project_backend.security.JWTService;
 import com.w3villa.mini_project_backend.services.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -34,7 +38,9 @@ public class AuthController {
     private final JWTService jwtService;
     private final ModelMapper mapper;
     private final AuthService authService;
-//    private final CookieService cookieService;
+
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final CookieService cookieService;
 
 
     @PostMapping("/login")
@@ -46,30 +52,30 @@ public class AuthController {
 
         }
 
-//
-//        String jti = UUID.randomUUID().toString();
-//        var refreshTokenOb = RefreshToken.builder()
-//                .jti(jti)
-//                .user(user)
-//                .createdAt(Instant.now())
-//                .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
-//                .revoked(false)
-//                .build();
-//
-//        //refresh token save--information
-//        refreshTokenRepository.save(refreshTokenOb);
+
+        String jti = UUID.randomUUID().toString();
+        var refreshTokenOb = RefreshToken.builder()
+                .jti(jti)
+                .user(user)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(jwtService.getRefreshTtlSeconds()))
+                .revoked(false)
+                .build();
+
+        //refresh token save--information
+        refreshTokenRepository.save(refreshTokenOb);
 
 
         //access token--generate
         String accessToken = jwtService.generateAccessToken(user);
-//        String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
+        String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
 
         // use cookie service to attach refresh token in cookie
-//
-//        cookieService.attachRefreshCookie(response, refreshToken, (int) jwtService.getRefreshTtlSeconds());
-//        cookieService.addNoStoreHeaders(response);
 
-        TokenResponse tokenResponse = TokenResponse.of(accessToken, "refreshToken", jwtService.getAccessTtlSeconds(), mapper.map(user, UserDto.class));
+        cookieService.attachRefreshCookie(response, refreshToken, (int) jwtService.getRefreshTtlSeconds());
+        cookieService.addNoStoreHeaders(response);
+
+        TokenResponse tokenResponse = TokenResponse.of(accessToken, refreshToken, jwtService.getAccessTtlSeconds(), mapper.map(user, UserDto.class));
         return ResponseEntity.ok(tokenResponse);
 
     }
