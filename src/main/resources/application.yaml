@@ -6,15 +6,6 @@ spring:
     username: root
     password: admin
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    hikari:
-#      pool-name: HikariCP
-#      maximum-pool-size: 5
-#      connection-timeout: 10000
-#      idle-timeout: 600000
-#      max-lifetime: 1800000
-#      validation-timeout: 1800000
-#      leak-detection-threshold: 0
-#      initialization-fail-timeout: -1
   jpa:
     hibernate:
       ddl-auto: update
@@ -23,7 +14,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
-      show_sql: true
   security:
     oauth2:
       client:
@@ -42,11 +32,20 @@ spring:
             scope:
               - user:email
               - read:user
+  # --- MOVED MAIL UNDER SPRING ---
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
-logging:
-    level:
-      org.springframework.security: DEBUG
-
+# --- JWT SETTINGS (Keeping these separate is fine if you have a @ConfigurationProperties class for 'security') ---
 security:
   jwt:
     secret: ${JWT_SECRET:jgdhdngdccvctxkcgfjdgcdkjfkdkjddgkkxdfjkdghkdjnghgjdgkkdfdjkghjhj}
@@ -59,14 +58,32 @@ security:
     cookie-same-site: ${JWT_COOKIE_SAME_SITE:lax}
     cookie-domain: ${JWT_COOKIE_DOMAIN:localhost}
 
+logging:
+  level:
+    org.springframework.security: DEBUG
 
 server:
   port: 8080
 
+# --- CUSTOM APP SETTINGS ---
 app:
   cors:
     front-end-url: http://localhost:5173
   auth:
     frontend:
+      base-url: http://localhost:5173
       success-redirect: http://localhost:5173/oauth/success
       failure-redirect: http://localhost:5173/oauth/failure
+
+  storj:
+    endpoint: https://gateway.storjshare.io
+    access-key: ${STORJ_ACCESS_KEY}
+    secret-key: ${STORJ_SECRET_KEY}
+    bucket-name: user-profile
+    region: ap1
+
+
+
+stripe:
+    api-key: ${STRIPE_API_KEY}
+    webhook-secret: whsec_0bf5ccf61d21d87203a6e8dd11eb090c70cacd4248a8559f421f0994267f6c0d

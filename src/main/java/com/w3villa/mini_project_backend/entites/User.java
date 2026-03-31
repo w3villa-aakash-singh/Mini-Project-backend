@@ -5,7 +5,6 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.time.Instant;
 import java.util.*;
 
@@ -17,27 +16,54 @@ import java.util.*;
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name="user_id")
+    @Column(name="user_id", columnDefinition = "BINARY(16)")
     private UUID id;
 
-    @Column(name= "user_email", unique = true,length = 300)
+    @Column(name= "user_email", unique = true, length = 300, nullable = false)
     private String email;
 
-    @Column(name= "user_name", unique = true,length = 500)
+    @Column(name= "user_name", length = 500)
     private String name;
+
     private String password;
     private String image;
-    private boolean enable=true;
-    private Instant createdAt= Instant.now();
-    private Instant updateAt = Instant.now();
-//    private String gender;
-//    private Address address;
 
+    @Column(name = "formatted_address", length = 1000)
+    private String formattedAddress;
+
+    private Double latitude;
+    private Double longitude;
+
+    @Builder.Default
+    @Column(name = "enabled")
+    private boolean enabled = false;
+
+    @Column(name = "verification_code", length = 64)
+    private String verificationCode;
+
+    @Column(updatable = false)
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    private  Provider provider = Provider.LOCAL;
-    private  String providerId;
+    private Provider provider = Provider.LOCAL;
+
+    private String providerId;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_type")
+    private PlanType planType = PlanType.FREE;
+
+    @Column(name = "plan_expiry")
+    private Instant planExpiry;
+
+    @Column(name = "plan_activated_at")
+    private Instant planActivatedAt;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
@@ -46,49 +72,26 @@ public class User implements UserDetails {
     private Set<Role> roles = new HashSet<>();
 
     @PrePersist
-    protected void onCreate(){
-        Instant now = Instant.now();
-        if(createdAt == null) createdAt =now;
-        updateAt=now;
-
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
     @PreUpdate
-    protected void onUpdate(){
-        updateAt = Instant.now();
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles
-                .stream()
+        return roles.stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .toList();
     }
 
-    @Override
-    public String getUsername() {
-        return this.email;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return this.enable;
-    }
+    @Override public String getUsername() { return this.email; }
+    @Override public boolean isEnabled() { return this.enabled; }
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
 }
-
