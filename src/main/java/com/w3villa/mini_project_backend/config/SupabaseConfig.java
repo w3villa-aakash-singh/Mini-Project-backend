@@ -9,26 +9,29 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.net.URI;
-
 @Configuration
-public class StorjConfig {
+public class SupabaseConfig {
 
-    @Value("${app.storj.endpoint}")
+    @Value("${app.supabase.endpoint}")
     private String endpoint;
 
-    @Value("${app.storj.access-key}")
+    @Value("${app.supabase.access-key}")
     private String accessKey;
 
-    @Value("${app.storj.secret-key}")
+    @Value("${app.supabase.secret-key}")
     private String secretKey;
+
+    @Value("${app.supabase.region}")
+    private String region;
 
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
+                .forcePathStyle(true) // CRITICAL: Supabase needs this
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
-                .region(Region.US_EAST_1) // Storj usually ignores region but SDK needs it
+                .region(Region.of(region))
                 .build();
     }
 }

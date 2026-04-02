@@ -1,18 +1,17 @@
 package com.w3villa.mini_project_backend.controllers;
 
-
 import com.w3villa.mini_project_backend.dtos.UserDto;
+import com.w3villa.mini_project_backend.entites.PlanType;
 import com.w3villa.mini_project_backend.services.UserService;
+
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -21,19 +20,12 @@ public class UserController {
 
     private final UserService userService;
 
+    // ---------------- PUBLIC / AUTH ----------------
+
     @PostMapping
     public ResponseEntity<UserDto> createUser(@RequestBody UserDto userDto){
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(userDto));
-    }
-
-    @GetMapping
-    public ResponseEntity<Iterable<UserDto>> getAllUsers(){
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
-    @GetMapping("/email/{email}")
-    public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email){
-        return ResponseEntity.ok(userService.getUserByEmail(email));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userService.createUser(userDto));
     }
 
     @GetMapping("/{userId}")
@@ -41,41 +33,56 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(userId));
     }
 
-
-
     @PutMapping("/{userId}")
-    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto, @PathVariable String userId){
-        // This now handles the address, lat, and lng automatically via the updated service
+    public ResponseEntity<UserDto> updateUser(@RequestBody UserDto userDto,
+                                              @PathVariable String userId){
         return ResponseEntity.ok(userService.updateUser(userDto, userId));
-
     }
 
-    @GetMapping("/{userId}/download")
-    public ResponseEntity<byte[]> downloadUserProfile(@PathVariable String userId) {
-        byte[] pdfData = userService.generateUserProfilePdf(userId);
+    // ---------------- ADMIN ONLY ----------------
 
-        return ResponseEntity.ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Dossier_" + userId + ".pdf")
-                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                .body(pdfData);
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<Iterable<UserDto>> getAllUsers(){
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{userId}")
     public ResponseEntity<String> deleteUser(@PathVariable String userId){
         userService.deleteUser(userId);
         return ResponseEntity.ok("User deleted successfully!");
     }
 
-    /**
-     * Requirement 4.1: Handle Profile Picture Upload to Storj
-     */
+    // 🔥 NEW: Upgrade plan (ADMIN FEATURE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{userId}/upgrade")
+    public ResponseEntity<String> upgradeUserPlan(
+            @PathVariable String userId,
+            @RequestParam PlanType planType){
+
+        userService.upgradeUserPlan(userId, planType);
+        return ResponseEntity.ok("User upgraded to " + planType);
+    }
+
+    // ---------------- FILE / PDF ----------------
+
+    @GetMapping("/{userId}/download")
+    public ResponseEntity<byte[]> downloadUserProfile(@PathVariable String userId) {
+        byte[] pdfData = userService.generateUserProfilePdf(userId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=User_" + userId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfData);
+    }
+
     @PostMapping("/{userId}/upload-image")
     public ResponseEntity<String> uploadProfileImage(
             @PathVariable String userId,
             @RequestParam("file") MultipartFile file) throws IOException {
 
-        // This calls the specific Storj upload logic in your service
         String imageUrl = userService.uploadProfilePicture(userId, file);
         return ResponseEntity.ok(imageUrl);
     }

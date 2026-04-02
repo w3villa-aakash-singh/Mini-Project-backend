@@ -11,6 +11,6 @@ import java.util.UUID;
 @Builder
 public class RoleDto {
 
-    private UUID id= UUID.randomUUID();
+    private UUID id;
     private String name;
 }
