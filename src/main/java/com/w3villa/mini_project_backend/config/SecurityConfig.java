@@ -43,7 +43,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource(null)))
+                .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -91,8 +91,7 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
     @Bean
-    public CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.front-end-url}") String corsUrls) {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.front-end-url}") String corsUrls) {
 
         String[] urls = corsUrls.trim().split(",");
 
@@ -102,10 +101,9 @@ public class SecurityConfig {
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
-        // 🔥 ADD THIS (VERY IMPORTANT)
-        config.setExposedHeaders(List.of("Set-Cookie"));
-
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+
+
     }}
