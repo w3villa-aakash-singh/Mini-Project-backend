@@ -34,6 +34,7 @@ public class JWTService {
 
 
         if (secret ==null || secret.length()<64){
+            System.out.println("JWT SECRET LENGTH = " + (secret == null ? "null" : secret.length()));
             throw new IllegalArgumentException("Invalid Request");
         }
 
