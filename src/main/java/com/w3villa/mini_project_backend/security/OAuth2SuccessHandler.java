@@ -132,7 +132,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user, refreshTokenOb.getJti());
         cookieService.attachRefreshCookie(response, refreshToken, (int) jwtService.getRefreshTtlSeconds());
-//        response.getWriter().write("Login successful");
+
+// 🔥 VERY IMPORTANT LINE
+        response.flushBuffer();
+
         response.sendRedirect(frontEndSuccessUrl);
 
     }
