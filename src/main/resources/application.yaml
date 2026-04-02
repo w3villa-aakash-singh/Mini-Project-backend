@@ -70,7 +70,7 @@
       org.springframework.security: DEBUG
 
   server:
-    port: 8080
+    port: ${8080}
 
   app:
     cors:
