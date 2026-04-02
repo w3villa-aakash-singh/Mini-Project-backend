@@ -55,7 +55,7 @@
 
   security:
     jwt:
-      secret: ${JWT_SECRET:defaultsecretkey}
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:api.substring.com}
       access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
       refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:86400}
