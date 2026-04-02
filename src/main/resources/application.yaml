@@ -70,6 +70,7 @@
       cookie-secure: true
       cookie-http-only: true
       cookie-same-site: none
+      cookie-domain: ""
 
   logging:
     level:
