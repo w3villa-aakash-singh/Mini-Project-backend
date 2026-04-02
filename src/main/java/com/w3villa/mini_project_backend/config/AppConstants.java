@@ -8,14 +8,19 @@ public class AppConstants {
             "/v3/api-docs/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
-            "/api/v1/users/**",
-            "/api/v1/payments/**"
+
+            // Only specific user APIs
+            "/api/v1/users",              // create user
+            "/api/v1/users/*",            // get/update by id
+            "/api/v1/users/*/download",
+            "/api/v1/users/*/upload-image"
     };
 
-    public static final String[] AUTH_ADMIN_URLS= {
-//            "/api/v1/users/**"
+    public static final String[] AUTH_ADMIN_URLS = {
+            "/api/v1/users",              // GET all users
+            "/api/v1/users/*/upgrade",
+            "/api/v1/users/*"             // DELETE
     };
-
     public static final String[] AUTH_GUEST_URLS= {
 
     };

@@ -9,33 +9,29 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-
 @Service
 @RequiredArgsConstructor
 public class FileService {
 
-    private final S3Client s3Client; // This uses the Bean from your StorjConfig
+    private final S3Client s3Client;
 
-    @Value("${app.storj.bucket-name}")
+    @Value("${app.supabase.bucket-name}")
     private String bucketName;
 
-    @Value("${app.storj.endpoint}")
-    private String storjEndpoint;
+    // Replace 'zongeyrdnaapvpcvkpep' if it changes, but this matches your YML
+    private final String SUPABASE_PUBLIC_URL = "https://zongeyrdnaapvpcvkpep.supabase.co/storage/v1/object/public/";
 
     public String uploadImage(MultipartFile file, String fileName) throws IOException {
-        // 1. Prepare the S3 Put Request
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileName)
                 .contentType(file.getContentType())
                 .build();
 
-        // 2. Upload the bytes to Storj
         s3Client.putObject(putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-        // 3. Construct the Public URL for your React Frontend
-        // Example: https://gateway.storjshare.io/user-profile/profiles/123_456.png
-        return String.format("%s/%s/%s", storjEndpoint, bucketName, fileName);
+        // Returns: https://zongeyrdnaapvpcvkpep.supabase.co/storage/v1/object/public/user-profile/filename.png
+        return SUPABASE_PUBLIC_URL + bucketName + "/" + fileName;
     }
 }

@@ -1,6 +1,11 @@
 spring:
   application:
     name: mini-project-backend
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+    datasource:
   datasource:
     url: jdbc:mysql://localhost:3306/mini-project?createDatabaseIfNotExist=true
     username: root
@@ -75,15 +80,16 @@ app:
       success-redirect: http://localhost:5173/oauth/success
       failure-redirect: http://localhost:5173/oauth/failure
 
-  storj:
-    endpoint: https://gateway.storjshare.io
-    access-key: ${STORJ_ACCESS_KEY}
-    secret-key: ${STORJ_SECRET_KEY}
+  supabase:
+    endpoint: https://zongeyrdnaapvpcvkpep.storage.supabase.co/storage/v1/s3
+    access-key: ${SUPABASE_ACCESS_KEY}
+    secret-key: ${SUPABASE_SECRET_KEY}
     bucket-name: user-profile
-    region: ap1
+    region: ap-southeast-1
 
 
 
 stripe:
     api-key: ${STRIPE_API_KEY}
-    webhook-secret: whsec_0bf5ccf61d21d87203a6e8dd11eb090c70cacd4248a8559f421f0994267f6c0d
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+
