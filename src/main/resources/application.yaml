@@ -1,95 +1,94 @@
-spring:
-  application:
-    name: mini-project-backend
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+  spring:
+    application:
+      name: mini-project-backend
+
+    servlet:
+      multipart:
+        max-file-size: 10MB
+        max-request-size: 10MB
+
     datasource:
-  datasource:
-    url: jdbc:mysql://localhost:3306/mini-project?createDatabaseIfNotExist=true
-    username: root
-    password: admin
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
+      url: ${SPRING_DATASOURCE_URL}
+      username: ${SPRING_DATASOURCE_USERNAME}
+      password: ${SPRING_DATASOURCE_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+
+    jpa:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
+        ddl-auto: update
+      show-sql: true
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.MySQLDialect
+          format_sql: true
+
+    security:
+      oauth2:
+        client:
+          registration:
+            google:
+              client-id: ${GOOGLE_CLIENT_ID:test-client-id}
+              client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
+              scope:
+                - email
+                - profile
+                - openid
+            github:
+              client-id: ${GITHUB_CLIENT_ID:test-client-id}
+              client-secret: ${GITHUB_CLIENT_SECRET:test-client-secret}
+              redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+              scope:
+                - user:email
+                - read:user
+
+    mail:
+      host: smtp.gmail.com
+      port: 587
+      username: ${MAIL_USERNAME}
+      password: ${MAIL_PASSWORD}
+      properties:
+        mail:
+          smtp:
+            auth: true
+            starttls:
+              enable: true
+
   security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:test-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
-            scope:
-              - email
-              - profile
-              - openid
-          github:
-            client-id: ${GITHUB_CLIENT_ID:test-client-id}
-            client-secret: ${GITHUB_CLIENT_SECRET:test-client-secret}
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope:
-              - user:email
-              - read:user
-  # --- MOVED MAIL UNDER SPRING ---
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+    jwt:
+      secret: ${JWT_SECRET:defaultsecretkey}
+      issuer: ${JWT_ISSUER:api.substring.com}
+      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
+      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:86400}
+      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
+      cookie-secure: ${JWT_COOKIE_SECURE:true}
+      cookie-http-only: ${JWT_COOKIE_HTTP_ONLY:true}
+      cookie-same-site: ${JWT_COOKIE_SAME_SITE:lax}
+      cookie-domain: ${JWT_COOKIE_DOMAIN:localhost}
 
-# --- JWT SETTINGS (Keeping these separate is fine if you have a @ConfigurationProperties class for 'security') ---
-security:
-  jwt:
-    secret: ${JWT_SECRET:jgdhdngdccvctxkcgfjdgcdkjfkdkjddgkkxdfjkdghkdjnghgjdgkkdfdjkghjhj}
-    issuer: ${JWT_ISSUER:api.substring.com}
-    access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
-    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:86400}
-    refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
-    cookie-secure: ${JWT_COOKIE_SECURE:true}
-    cookie-http-only: ${JWT_COOKIE_HTTP_ONLY:true}
-    cookie-same-site: ${JWT_COOKIE_SAME_SITE:lax}
-    cookie-domain: ${JWT_COOKIE_DOMAIN:localhost}
+  logging:
+    level:
+      org.springframework.security: DEBUG
 
-logging:
-  level:
-    org.springframework.security: DEBUG
+  server:
+    port: 8080
 
-server:
-  port: 8080
+  app:
+    cors:
+      front-end-url: ${FRONTEND_URL}
 
-# --- CUSTOM APP SETTINGS ---
-app:
-  cors:
-    front-end-url: http://localhost:5173
-  auth:
-    frontend:
-      base-url: http://localhost:5173
-      success-redirect: http://localhost:5173/oauth/success
-      failure-redirect: http://localhost:5173/oauth/failure
+    auth:
+      frontend:
+        base-url: ${FRONTEND_URL}
+        success-redirect: ${FRONTEND_URL}/oauth/success
+        failure-redirect: ${FRONTEND_URL}/oauth/failure
 
-  supabase:
-    endpoint: https://zongeyrdnaapvpcvkpep.storage.supabase.co/storage/v1/s3
-    access-key: ${SUPABASE_ACCESS_KEY}
-    secret-key: ${SUPABASE_SECRET_KEY}
-    bucket-name: user-profile
-    region: ap-southeast-1
+    supabase:
+      endpoint: https://zongeyrdnaapvpcvkpep.storage.supabase.co/storage/v1/s3
+      access-key: ${SUPABASE_ACCESS_KEY}
+      secret-key: ${SUPABASE_SECRET_KEY}
+      bucket-name: user-profile
+      region: ap-southeast-1
 
-
-
-stripe:
+  stripe:
     api-key: ${STRIPE_API_KEY}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET}
-
