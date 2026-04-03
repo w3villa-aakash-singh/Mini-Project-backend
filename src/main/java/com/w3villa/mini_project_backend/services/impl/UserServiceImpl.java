@@ -74,10 +74,27 @@ public class UserServiceImpl implements UserService {
     public void register(UserDto userDto, String siteURL)
             throws MessagingException, UnsupportedEncodingException {
 
-        if (userRepository.existsByEmail(userDto.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+        // 🚩 STEP 1: Check if user already exists
+        java.util.Optional<User> existingUser = userRepository.findByEmail(userDto.getEmail());
+
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+
+            if (user.isEnabled()) {
+                // 🚩 SCENARIO A: User is already verified and active
+                throw new IllegalArgumentException("Identity already confirmed. Please log in to the portal.");
+            } else {
+                // 🚩 SCENARIO B: User exists but is NOT verified. Update code and resend email.
+                String newCode = UUID.randomUUID().toString();
+                user.setVerificationCode(newCode);
+                userRepository.save(user);
+
+                sendVerificationEmail(user, siteURL);
+                throw new IllegalArgumentException("Verification pending. A new security link has been dispatched to your inbox.");
+            }
         }
 
+        // 🚩 SCENARIO C: Brand new user registration
         User user = modelMapper.map(userDto, User.class);
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setProvider(userDto.getProvider() != null ? userDto.getProvider() : Provider.LOCAL);
@@ -93,15 +110,24 @@ public class UserServiceImpl implements UserService {
     private void sendVerificationEmail(User user, String siteURL)
             throws MessagingException, UnsupportedEncodingException {
 
-        String content = "Click to verify:<br><a href=\""
-                + frontendBaseUrl + "/verify?code=" + user.getVerificationCode()
-                + "\">VERIFY</a>";
+        // 🚩 FIX: Clean the URL in case it contains multiple Vercel links
+        String cleanBaseUrl = frontendBaseUrl;
+        if (cleanBaseUrl.contains(",")) {
+            cleanBaseUrl = cleanBaseUrl.split(",")[0].trim();
+        }
+
+        String verifyLink = cleanBaseUrl + "/verify?code=" + user.getVerificationCode();
+
+        String content = "<h3>PLANVERIFY SECURITY PROTOCOL</h3>"
+                + "<p>Please click the link below to verify your identity and activate your account:</p>"
+                + "<a href=\"" + verifyLink + "\" style='background:red; color:white; padding:10px; text-decoration:none;'>VERIFY IDENTITY</a>"
+                + "<p>If you did not request this, please ignore this transmission.</p>";
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
         helper.setTo(user.getEmail());
-        helper.setSubject("Verify Account");
+        helper.setSubject("[PlanVerify] Identity Verification Required");
         helper.setText(content, true);
 
         mailSender.send(message);
