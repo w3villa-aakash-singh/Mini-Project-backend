@@ -16,15 +16,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional; // 🚩 Ensure this import
 import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
@@ -48,14 +47,14 @@ public class AuthController {
     private final CookieService cookieService;
 
     @PostMapping("/login")
+    @Transactional // 🚩 Added to handle Lazy loading of roles during token generation
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-        // Authenticate credentials first
         Authentication authenticate = authenticate(loginRequest);
 
-        User user = userRepository.findByEmail(loginRequest.email())
+        // 🚩 Use the new FETCH JOIN method
+        User user = userRepository.findByEmailWithRoles(loginRequest.email())
                 .orElseThrow(() -> new BadCredentialsException("Invalid Username or Password"));
 
-        // Use the updated 'enabled' field name
         if (!user.isEnabled()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Please verify your email before logging in.");
@@ -108,6 +107,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @Transactional // 🚩 CRITICAL: Keeps session open for user.getRoles() in JWTService
     public ResponseEntity<TokenResponse> refreshToken(
             @RequestBody(required = false) RefreshTokenRequest body,
             HttpServletResponse response,
@@ -128,7 +128,10 @@ public class AuthController {
             throw new BadCredentialsException("Refresh token expired or revoked");
         }
 
-        User user = storedRefreshToken.getUser();
+        // 🚩 Re-fetch user with Roles to avoid LazyInitializationException
+        User user = userRepository.findByIdWithRoles(storedRefreshToken.getUser().getId())
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
         storedRefreshToken.setRevoked(true);
         refreshTokenRepository.save(storedRefreshToken);
 
@@ -142,6 +145,7 @@ public class AuthController {
                 .build();
 
         refreshTokenRepository.save(newRefreshTokenOb);
+
         String newAccessToken = jwtService.generateAccessToken(user);
         String newRefreshToken = jwtService.generateRefreshToken(user, newRefreshTokenOb.getJti());
 
@@ -193,7 +197,6 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
             );
         } catch (Exception e) {
-            e.printStackTrace();
             throw new BadCredentialsException("Invalid Username or Password !!");
         }
     }
