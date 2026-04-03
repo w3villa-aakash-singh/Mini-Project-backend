@@ -63,13 +63,13 @@
   security:
     jwt:
       secret: ${JWT_SECRET}
-      issuer: ${JWT_ISSUER:api.substring.com}
-      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:3600}
-      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:86400}
-      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME:refreshToken}
-      cookie-secure: ${JWT_COOKIE_SECURE:true}
-      cookie-http-only: ${JWT_COOKIE_HTTP_ONLY:true}
-      cookie-same-site: ${JWT_COOKIE_SAME_SITE:lax}
+      issuer: ${JWT_ISSUER}
+      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS}
+      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS}
+      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME}
+      cookie-secure: ${JWT_COOKIE_SECURE}
+      cookie-http-only: ${JWT_COOKIE_HTTP_ONLY}
+      cookie-same-site: ${JWT_COOKIE_SAME_SITE}
       cookie-domain: ${JWT_COOKIE_DOMAIN:}
 
   logging:
