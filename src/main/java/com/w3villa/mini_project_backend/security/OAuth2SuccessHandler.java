@@ -136,8 +136,15 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             logger.info("🚩 Attaching Refresh Token to secure cookie...");
             cookieService.attachRefreshCookie(response, refreshToken, (int) jwtService.getRefreshTtlSeconds());
 
+            // 🚩 THE MULTI-URL FIX: Take only the first URL if comma-separated
+            String finalRedirectBase = frontEndSuccessUrl;
+            if (finalRedirectBase.contains(",")) {
+                logger.warn("🚩 Multiple redirect URLs detected. Picking the first one...");
+                finalRedirectBase = finalRedirectBase.split(",")[0].trim();
+            }
+
             // Construct Final Redirect URL with Access Token
-            String targetUrl = UriComponentsBuilder.fromUriString(frontEndSuccessUrl)
+            String targetUrl = UriComponentsBuilder.fromUriString(finalRedirectBase)
                     .queryParam("token", accessToken)
                     .build().toUriString();
 
@@ -150,8 +157,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             logger.error("❌ CRITICAL ERROR in OAuth2SuccessHandler: ", e);
             System.out.println("❌ [DEBUG] Error: " + e.getMessage());
 
-            // Redirect to frontend failure if something goes wrong
-            String errorUrl = UriComponentsBuilder.fromUriString(frontEndSuccessUrl)
+            // If redirection base is broken, use a safe default or extract from broken string
+            String fallbackBase = frontEndSuccessUrl.split(",")[0].trim();
+            String errorUrl = UriComponentsBuilder.fromUriString(fallbackBase)
                     .replacePath("/oauth/failure")
                     .queryParam("error", e.getMessage())
                     .build().toUriString();
