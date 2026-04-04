@@ -84,16 +84,20 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody UserDto userDto, HttpServletRequest request)
-            throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<String> registerUser(@RequestBody UserDto userDto, HttpServletRequest request) {
+        try {
+            String siteURL = request.getRequestURL().toString().replace(request.getServletPath(), "");
+            String authBaseUrl = siteURL + "/api/v1/auth";
 
-        String siteURL = request.getRequestURL().toString().replace(request.getServletPath(), "");
-        String authBaseUrl = siteURL + "/api/v1/auth";
+            userService.register(userDto, authBaseUrl);
 
-        userService.register(userDto, authBaseUrl);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Registration successful! Please check your email to verify your account.");
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("Registration successful! Please check your email to verify your account.");
+        } catch (Exception e) {
+            // Log the error but perhaps still return a 201 if the user was saved to DB
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Registration failed due to a server error. Please try again later.");
+        }
     }
 
     @GetMapping("/verify")
