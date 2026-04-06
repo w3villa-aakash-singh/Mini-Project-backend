@@ -60,12 +60,15 @@ spring:
         debug: true
         smtp:
           auth: true
-          # These 3 lines are the "Precision Fix" for port 465
           ssl:
             enable: true
+            header:
+              X-PM-Message-Stream: out
+          # This tells Java exactly how to create the secure tunnel
           socketFactory:
             port: 465
-            class: jakarta.mail.util.SSLConnectionSocketFactory
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
           connectiontimeout: 10000
           timeout: 10000
 
