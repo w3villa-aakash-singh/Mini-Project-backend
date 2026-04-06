@@ -57,15 +57,17 @@ spring:
     password: ${MAIL_PASSWORD}
     properties:
       mail:
-        debug: true  # Enables raw SMTP conversation in logs
+        debug: true
         smtp:
           auth: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-          starttls:
+          # These 3 lines are the "Precision Fix" for port 465
+          ssl:
             enable: true
-            required: true
+          socketFactory:
+            port: 465
+            class: jakarta.mail.util.SSLConnectionSocketFactory
+          connectiontimeout: 10000
+          timeout: 10000
 
 # Logging Configuration (FIXED INDENTATION)
 logging:
