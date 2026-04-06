@@ -60,7 +60,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
     private final FileService fileService;
     private final  RefreshTokenRepository refreshTokenRepository;
 
