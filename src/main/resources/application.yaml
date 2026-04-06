@@ -50,27 +50,9 @@ spring:
               - read:user
 
   # Mail Configuration (FIXED INDENTATION)
-  mail:
-    host: smtp.gmail.com
-    port: 465
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        debug: true
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-            header:
-              X-PM-Message-Stream: out
-          # This tells Java exactly how to create the secure tunnel
-          socketFactory:
-            port: 465
-            class: javax.net.ssl.SSLSocketFactory
-            fallback: false
-          connectiontimeout: 10000
-          timeout: 10000
+  sendgrid:
+    api-key: ${SENDGRID_API_KEY}
+    sender: ${SENDGRID_SENDER_EMAIL}
 
 # Logging Configuration (FIXED INDENTATION)
 logging:

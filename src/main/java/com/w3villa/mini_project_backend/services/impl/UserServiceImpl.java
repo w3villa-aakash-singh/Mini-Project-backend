@@ -3,6 +3,7 @@ package com.w3villa.mini_project_backend.services.impl;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
 
+import com.sendgrid.Method;
 import com.w3villa.mini_project_backend.dtos.RoleDto;
 import com.w3villa.mini_project_backend.dtos.UserDto;
 import com.w3villa.mini_project_backend.entites.PlanType;
@@ -16,7 +17,6 @@ import com.w3villa.mini_project_backend.services.FileService;
 import com.w3villa.mini_project_backend.services.UserService;
 
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +36,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +49,13 @@ public class UserServiceImpl implements UserService {
 
     @Value("${app.auth.frontend.base-url}")
     private String frontendBaseUrl;
+
+
+    @Value("${SENDGRID_API_KEY}")
+    private String sendGridApiKey;
+
+    @Value("${SENDGRID_SENDER_EMAIL}")
+    private String senderEmail;
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
@@ -107,10 +119,7 @@ public class UserServiceImpl implements UserService {
         sendVerificationEmail(user, siteURL);
     }
 
-    private void sendVerificationEmail(User user, String siteURL)
-            throws MessagingException, UnsupportedEncodingException {
-
-        // 🚩 FIX: Clean the URL in case it contains multiple Vercel links
+    private void sendVerificationEmail(User user, String siteURL) {
         String cleanBaseUrl = frontendBaseUrl;
         if (cleanBaseUrl.contains(",")) {
             cleanBaseUrl = cleanBaseUrl.split(",")[0].trim();
@@ -118,19 +127,34 @@ public class UserServiceImpl implements UserService {
 
         String verifyLink = cleanBaseUrl + "/verify?code=" + user.getVerificationCode();
 
-        String content = "<h3>PLANVERIFY SECURITY PROTOCOL</h3>"
-                + "<p>Please click the link below to verify your identity and activate your account:</p>"
-                + "<a href=\"" + verifyLink + "\" style='background:red; color:white; padding:10px; text-decoration:none;'>VERIFY IDENTITY</a>"
-                + "<p>If you did not request this, please ignore this transmission.</p>";
+        // SendGrid Setup
+        Email from = new Email(senderEmail);
+        String subject = "[PlanVerify] Identity Verification Required";
+        Email to = new Email(user.getEmail());
+        Content content = new Content("text/html",
+                "<h3>PLANVERIFY SECURITY PROTOCOL</h3>" +
+                        "<p>Click the link to verify your identity:</p>" +
+                        "<a href=\"" + verifyLink + "\" style='background:blue; color:white; padding:10px; text-decoration:none;'>VERIFY IDENTITY</a>"
+        );
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
+        Mail mail = new Mail(from, subject, to, content);
+        SendGrid sg = new SendGrid(sendGridApiKey);
+        Request request = new Request();
 
-        helper.setTo(user.getEmail());
-        helper.setSubject("[PlanVerify] Identity Verification Required");
-        helper.setText(content, true);
+        try {
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            Response response = sg.api(request);
 
-        mailSender.send(message);
+            // Check for success (202 is the standard SendGrid success code)
+            if (response.getStatusCode() >= 400) {
+                System.err.println("SendGrid Error: " + response.getBody());
+            }
+        } catch (IOException ex) {
+            System.err.println("SendGrid Exception: " + ex.getMessage());
+            throw new RuntimeException("Failed to send verification email");
+        }
     }
 
     @Override
