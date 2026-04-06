@@ -1,105 +1,113 @@
-  spring:
-    application:
-      name: mini-project-backend
+spring:
+  application:
+    name: mini-project-backend
 
-    servlet:
-      multipart:
-        max-file-size: 10MB
-        max-request-size: 10MB
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
-    datasource:
-      url: ${SPRING_DATASOURCE_URL}
-      username: ${SPRING_DATASOURCE_USERNAME}
-      password: ${SPRING_DATASOURCE_PASSWORD}
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        maximum-pool-size: 3
-        minimum-idle: 1
-        idle-timeout: 10000
-        max-lifetime: 300000
-        connection-timeout: 20000
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 10000
+      max-lifetime: 300000
+      connection-timeout: 20000
 
-    jpa:
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
       hibernate:
-        ddl-auto: none
-      show-sql: true
-      properties:
-        hibernate:
-          dialect: org.hibernate.dialect.MySQLDialect
-          format_sql: true
-      open-in-view: false
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    open-in-view: false
 
-    security:
-      oauth2:
-        client:
-          registration:
-            google:
-              client-id: ${GOOGLE_CLIENT_ID:test-client-id}
-              client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
-              scope:
-                - email
-                - profile
-                - openid
-            github:
-              client-id: ${GITHUB_CLIENT_ID:test-client-id}
-              client-secret: ${GITHUB_CLIENT_SECRET:test-client-secret}
-              redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-              scope:
-                - user:email
-                - read:user
-
-    mail:
-      host: smtp.gmail.com
-      port: 587
-      username: ${MAIL_USERNAME}
-      password: ${MAIL_PASSWORD}
-      properties:
-        mail:
-          smtp:
-            auth: true
-            connectiontimeout: 5000
-            timeout: 5000
-            writetimeout: 5000
-            starttls:
-              enable: true
-              required: true
-
+  # OAuth2 Configuration
   security:
-    jwt:
-      secret: ${JWT_SECRET}
-      issuer: ${JWT_ISSUER}
-      access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS}
-      refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS}
-      refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME}
-      cookie-secure: ${JWT_COOKIE_SECURE}
-      cookie-http-only: ${JWT_COOKIE_HTTP_ONLY}
-      cookie-same-site: ${JWT_COOKIE_SAME_SITE}
-      cookie-domain: ${JWT_COOKIE_DOMAIN:}
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:test-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
+            scope:
+              - email
+              - profile
+              - openid
+          github:
+            client-id: ${GITHUB_CLIENT_ID:test-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:test-client-secret}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - user:email
+              - read:user
 
-  logging:
-    level:
-      org.springframework.security: DEBUG
+  # Mail Configuration (FIXED INDENTATION)
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        debug: true  # Enables raw SMTP conversation in logs
+        smtp:
+          auth: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          starttls:
+            enable: true
+            required: true
 
-  server:
-    port: ${PORT:8080}
+# Logging Configuration (FIXED INDENTATION)
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    org.springframework.mail: DEBUG
+    com.sun.mail: DEBUG
+    org.hibernate.SQL: DEBUG
 
-  app:
-    cors:
-      front-end-url: ${FRONTEND_URL}
+# Custom Security & JWT Settings
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER}
+    access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS}
+    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS}
+    refresh-token-cookie-name: ${JWT_REFRESH_COOKIE_NAME}
+    cookie-secure: ${JWT_COOKIE_SECURE}
+    cookie-http-only: ${JWT_COOKIE_HTTP_ONLY}
+    cookie-same-site: ${JWT_COOKIE_SAME_SITE}
+    cookie-domain: ${JWT_COOKIE_DOMAIN:}
 
-    auth:
-      frontend:
-        base-url: ${FRONTEND_URL}
-        success-redirect: ${FRONTEND_URL}/oauth/success
-        failure-redirect: ${FRONTEND_URL}/oauth/failure
+server:
+  port: ${PORT:10000}
 
-    supabase:
-      endpoint: https://zongeyrdnaapvpcvkpep.storage.supabase.co/storage/v1/s3
-      access-key: ${SUPABASE_ACCESS_KEY}
-      secret-key: ${SUPABASE_SECRET_KEY}
-      bucket-name: user-profile
-      region: ap-southeast-1
+# Application Custom Properties
+app:
+  cors:
+    front-end-url: ${FRONTEND_URL}
+  auth:
+    frontend:
+      base-url: ${FRONTEND_URL}
+      success-redirect: ${FRONTEND_URL}/oauth/success
+      failure-redirect: ${FRONTEND_URL}/oauth/failure
+  supabase:
+    endpoint: https://zongeyrdnaapvpcvkpep.storage.supabase.co/storage/v1/s3
+    access-key: ${SUPABASE_ACCESS_KEY}
+    secret-key: ${SUPABASE_SECRET_KEY}
+    bucket-name: user-profile
+    region: ap-southeast-1
 
-  stripe:
-    api-key: ${STRIPE_API_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+stripe:
+  api-key: ${STRIPE_API_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
