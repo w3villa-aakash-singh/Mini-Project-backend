@@ -2,15 +2,16 @@ package com.w3villa.mini_project_backend.services.impl;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfWriter;
+import java.util.List;
 
 import com.sendgrid.Method;
 import com.w3villa.mini_project_backend.dtos.RoleDto;
 import com.w3villa.mini_project_backend.dtos.UserDto;
-import com.w3villa.mini_project_backend.entites.PlanType;
-import com.w3villa.mini_project_backend.entites.Provider;
-import com.w3villa.mini_project_backend.entites.User;
+import com.w3villa.mini_project_backend.entites.*;
 import com.w3villa.mini_project_backend.exceptions.ResourceNotFoundException;
 import com.w3villa.mini_project_backend.helpers.UserHelper;
+import com.w3villa.mini_project_backend.repositories.CartRepository;
+import com.w3villa.mini_project_backend.repositories.OrderRepository;
 import com.w3villa.mini_project_backend.repositories.RefreshTokenRepository;
 import com.w3villa.mini_project_backend.repositories.UserRepository;
 import com.w3villa.mini_project_backend.services.FileService;
@@ -62,6 +63,8 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileService fileService;
     private final  RefreshTokenRepository refreshTokenRepository;
+    private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
 
     // ✅ CENTRAL ROLE MAPPING METHOD
     private UserDto mapToDto(User user) {
@@ -185,11 +188,30 @@ public class UserServiceImpl implements UserService {
         return mapToDto(user); // ✅ FIX
     }
 
+    // Add this helper method inside UserServiceImpl.java
+    private User applyPlanCleanup(User user) {
+        if (user.getPlanType() != PlanType.FREE &&
+                user.getPlanExpiry() != null &&
+                user.getPlanExpiry().isBefore(Instant.now())) {
+
+            user.setPlanType(PlanType.FREE);
+            user.setPlanExpiry(null);
+            // Save the change so the DB is updated immediately
+            return userRepository.save(user);
+        }
+        return user;
+    }
+
+    // Then update your fetch method:
     @Override
     public UserDto getUserById(String userId) {
         User user = userRepository.findById(UserHelper.parseUUID(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return mapToDto(user); // ✅ FIX
+
+        // Check and update plan status BEFORE returning the DTO
+        user = applyPlanCleanup(user);
+
+        return mapToDto(user);
     }
 
     @Override
@@ -256,13 +278,33 @@ public class UserServiceImpl implements UserService {
     // ---------------- PLAN ----------------
 
     @Transactional
-    public void upgradeUserPlan(String userId, PlanType plan) {
+    public void upgradeUserPlan(String userId, PlanType newPlan) {
+
         User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        user.setPlanType(plan);
+        PlanType currentPlan = user.getPlanType();
+
+// 🔥 FIX: handle null plan
+        if (currentPlan == null) {
+            currentPlan = PlanType.FREE;
+        }
+
+// Prevent downgrade
+        if (newPlan.ordinal() <= currentPlan.ordinal()) {
+            System.out.println("Downgrade blocked for user: " + user.getEmail());
+            return;
+        }
+
+        user.setPlanType(newPlan);
         user.setPlanActivatedAt(Instant.now());
-        user.setPlanExpiry(Instant.now().plus(plan == PlanType.GOLD ? Duration.ofHours(12) : Duration.ofHours(6)));
+
+        // set expiry
+        if (newPlan == PlanType.GOLD) {
+            user.setPlanExpiry(Instant.now().plus(Duration.ofHours(12)));
+        } else if (newPlan == PlanType.SILVER) {
+            user.setPlanExpiry(Instant.now().plus(Duration.ofHours(6)));
+        }
 
         userRepository.save(user);
     }
@@ -294,25 +336,32 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(UserHelper.parseUUID(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        // 🔥 FETCH RELATED DATA
+        List<Order> orders = orderRepository.findByUser(user);
+        List<CartItem> cartItems = cartRepository.findByUser(user);
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
             Document doc = new Document();
             PdfWriter.getInstance(doc, out);
             doc.open();
 
-            // 🎯 TITLE
+            // 🔷 FONTS
             Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLUE);
-            Paragraph title = new Paragraph("USER PROFILE", titleFont);
+            Font headerFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.DARK_GRAY);
+            Font normalFont = new Font(Font.HELVETICA, 12);
+            Font footerFont = new Font(Font.HELVETICA, 10, Font.ITALIC, Color.GRAY);
+
+            // 🔷 TITLE
+            Paragraph title = new Paragraph("USER PROFILE DOSSIER", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             doc.add(title);
 
-            doc.add(new Paragraph(" ")); // space
+            doc.add(new Paragraph(" "));
 
-            // 🎯 SECTION HEADER FONT
-            Font headerFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.DARK_GRAY);
-            Font normalFont = new Font(Font.HELVETICA, 12);
-
+            // =========================
             // 👤 PERSONAL INFO
+            // =========================
             doc.add(new Paragraph("Personal Information", headerFont));
             doc.add(new Paragraph("-----------------------------------"));
 
@@ -323,7 +372,9 @@ public class UserServiceImpl implements UserService {
 
             doc.add(new Paragraph(" "));
 
-            // 📊 ACCOUNT DETAILS
+            // =========================
+            // ⚙️ ACCOUNT DETAILS
+            // =========================
             doc.add(new Paragraph("Account Details", headerFont));
             doc.add(new Paragraph("-----------------------------------"));
 
@@ -333,7 +384,9 @@ public class UserServiceImpl implements UserService {
 
             doc.add(new Paragraph(" "));
 
+            // =========================
             // 💎 PLAN DETAILS
+            // =========================
             doc.add(new Paragraph("Plan Details", headerFont));
             doc.add(new Paragraph("-----------------------------------"));
 
@@ -341,10 +394,79 @@ public class UserServiceImpl implements UserService {
             doc.add(new Paragraph("Activated At: " + user.getPlanActivatedAt(), normalFont));
             doc.add(new Paragraph("Expiry: " + user.getPlanExpiry(), normalFont));
 
+            doc.add(new Paragraph(" "));
+
+            // =========================
+            // 📦 ORDERS
+            // =========================
+            doc.add(new Paragraph("Orders", headerFont));
+            doc.add(new Paragraph("-----------------------------------"));
+
+            if (orders.isEmpty()) {
+                doc.add(new Paragraph("No orders found", normalFont));
+            } else {
+                for (Order order : orders) {
+
+                    doc.add(new Paragraph("Order ID: " + order.getId(), normalFont));
+                    doc.add(new Paragraph("Product: " + order.getProductName(), normalFont));
+                    doc.add(new Paragraph("Price: $" + order.getProductPrice(), normalFont));
+                    doc.add(new Paragraph("Quantity: " + order.getQuantity(), normalFont));
+                    doc.add(new Paragraph("Paid: $" + order.getPaidAmount(), normalFont));
+                    doc.add(new Paragraph("Status: " + order.getStatus(), normalFont));
+                    doc.add(new Paragraph("Purchase Date: " + order.getPurchaseDate(), normalFont));
+
+                    doc.add(new Paragraph("---------------"));
+                }
+            }
+
+            doc.add(new Paragraph(" "));
+
+            // =========================
+            // 🛒 CART
+            // =========================
+            doc.add(new Paragraph("Cart Items", headerFont));
+            doc.add(new Paragraph("-----------------------------------"));
+
+            if (cartItems.isEmpty()) {
+                doc.add(new Paragraph("Cart is empty", normalFont));
+            } else {
+                for (CartItem item : cartItems) {
+
+                    String productName = (item.getProduct() != null)
+                            ? item.getProduct().getName()
+                            : "Product removed";
+
+                    Double price = (item.getProduct() != null)
+                            ? item.getProduct().getBasePrice()
+                            : 0.0;
+
+                    doc.add(new Paragraph(productName + " x " + item.getQuantity(), normalFont));
+                    doc.add(new Paragraph("Price: $" + price, normalFont));
+
+                    doc.add(new Paragraph(" "));
+                }
+            }
+
+            doc.add(new Paragraph(" "));
+
+            // =========================
+            // 📊 SUMMARY
+            // =========================
+            doc.add(new Paragraph("Summary", headerFont));
+            doc.add(new Paragraph("-----------------------------------"));
+
+            double totalSpent = orders.stream()
+                    .mapToDouble(order -> order.getPaidAmount() != null ? order.getPaidAmount() : 0.0)
+                    .sum();
+
+            doc.add(new Paragraph("Total Orders: " + orders.size(), normalFont));
+            doc.add(new Paragraph("Total Spent: $" + totalSpent, normalFont));
+
             doc.add(new Paragraph("\n"));
 
-            // 🔻 FOOTER
-            Font footerFont = new Font(Font.HELVETICA, 10, Font.ITALIC, Color.GRAY);
+            // =========================
+            // 📌 FOOTER
+            // =========================
             Paragraph footer = new Paragraph("Generated by Mini Project Backend", footerFont);
             footer.setAlignment(Element.ALIGN_CENTER);
             doc.add(footer);
@@ -353,7 +475,8 @@ public class UserServiceImpl implements UserService {
             return out.toByteArray();
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error generating PDF", e);
         }
     }
+
 }

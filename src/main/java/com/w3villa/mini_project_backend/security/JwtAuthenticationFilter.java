@@ -100,10 +100,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Add the upload-image path to the skip list
-        return path.startsWith("/api/v1/auth") ||
+
+        return path.equals("/api/v1/auth/login") ||
+                path.equals("/api/v1/auth/register") ||
+                path.equals("/api/v1/auth/verify") ||
+                path.equals("/api/v1/auth/refresh") ||
                 path.contains("/upload-image") ||
                 path.contains("/download");
     }
