@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh"
                         ).permitAll()
                         .requestMatchers(AppConstants.AUTH_PUBLIC_URLS).permitAll()
+                        .requestMatchers("/api/v1/payments/**").authenticated()
                         .requestMatchers(AppConstants.AUTH_ADMIN_URLS).hasRole(AppConstants.ADMIN_ROLE)
                         .requestMatchers(AppConstants.AUTH_GUEST_URLS).hasRole(AppConstants.GUEST_ROLE)
                         .anyRequest().authenticated()
